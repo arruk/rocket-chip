@@ -343,6 +343,14 @@ class WithFbusToSbusCrossingType(xType: ClockCrossingType) extends Config((site,
   case FbusToSbusXTypeKey => xType
 })
 
+
+class WithMemoryBusBeatBytes(bytes: Int) extends Config((site, here, up) => {
+  case MemoryBusKey => up(MemoryBusKey, site).copy(beatBytes = bytes)
+})
+class WithSystemBusBeatBytes(bytes: Int) extends Config((site, here, up) => {
+  case SystemBusKey => up(SystemBusKey, site).copy(beatBytes = bytes)
+})
+
 /**
   * Mixins to set the dtsFrequency field of BusParams -- these will percolate its way
   * up the diplomatic graph to the clock sources.
