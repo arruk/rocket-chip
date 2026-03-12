@@ -32,7 +32,7 @@ case class RocketCoreParams(
   useZbs: Boolean = false,
   nLocalInterrupts: Int = 0,
   useNMI: Boolean = false,
-  nBreakpoints: Int = 1,
+  nBreakpoints: Int = 2,
   useBPWatch: Boolean = false,
   mcontextWidth: Int = 0,
   scontextWidth: Int = 0,
@@ -63,10 +63,10 @@ case class RocketCoreParams(
   val lgPauseCycles = 5
   val haveFSDirty = false
   val pmpGranularity: Int = if (useHypervisor) 4096 else 4
-  val fetchWidth: Int = if (useCompressed) 2 else 1
+  val fetchWidth: Int = if (useCompressed) 4 else 2
   //  fetchWidth doubled, but coreInstBytes halved, for RVC:
-  val decodeWidth: Int = fetchWidth / (if (useCompressed) 2 else 1)
-  val retireWidth: Int = 1
+  val decodeWidth: Int = (fetchWidth / (if (useCompressed) 4 else 2)) * 2 
+  val retireWidth: Int = 2
   val instBits: Int = if (useCompressed) 16 else 32
   val lrscCycles: Int = 80 // worst case is 14 mispredicted branches + slop
   val traceHasWdata: Boolean = debugROB.isDefined // ooo wb, so no wdata in trace
@@ -321,7 +321,7 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   ibuf.io.imem <> io.imem.resp
   ibuf.io.kill := take_pc
 
-  require(decodeWidth == 1 /* TODO */ && retireWidth == decodeWidth)
+  require(decodeWidth == 2 /* TODO */ && retireWidth == decodeWidth)
   require(!(coreParams.useRVE && coreParams.fpu.nonEmpty), "Can't select both RVE and floating-point")
   require(!(coreParams.useRVE && coreParams.useHypervisor), "Can't select both RVE and Hypervisor")
   val id_ctrl = Wire(new IntCtrlSigs).decode(id_inst(0), decode_table)
@@ -855,10 +855,12 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   // hook up control/status regfile
   csr.io.ungated_clock := clock
   csr.io.decode(0).inst := id_inst(0)
+  csr.io.decode(1).inst := DontCare
   csr.io.exception := wb_xcpt
   csr.io.cause := wb_cause
   csr.io.retire := wb_valid
   csr.io.inst(0) := (if (usingCompressed) Cat(Mux(wb_reg_raw_inst(1, 0).andR, wb_reg_inst >> 16, 0.U), wb_reg_raw_inst(15, 0)) else wb_reg_inst)
+  csr.io.inst(1) := DontCare
   csr.io.interrupts := io.interrupts
   csr.io.hartid := io.hartid
   io.fpu.fcsr_rm := csr.io.fcsr_rm
@@ -988,6 +990,7 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   }
   for (((iobpw, wphit), bp) <- io.bpwatch zip wb_reg_wphit zip csr.io.bp) {
     iobpw.valid(0) := wphit
+    iobpw.valid(1) := false.B
     iobpw.action := bp.control.action
     // tie off bpwatch valids
     iobpw.rvalid.foreach(_ := false.B)
@@ -1096,6 +1099,7 @@ class Rocket(tile: RocketTile)(implicit p: Parameters) extends CoreModule()(p)
   io.ptw.sfence := io.imem.sfence
 
   ibuf.io.inst(0).ready := !ctrl_stalld
+  ibuf.io.inst(1).ready := false.B
 
   io.imem.btb_update.valid := mem_reg_valid && !take_pc_wb && mem_wrong_npc && (!mem_cfi || mem_cfi_taken)
   io.imem.btb_update.bits.isValid := mem_cfi

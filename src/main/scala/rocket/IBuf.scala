@@ -28,7 +28,7 @@ class IBuf(implicit p: Parameters) extends CoreModule {
   })
 
   // This module is meant to be more general, but it's not there yet
-  require(decodeWidth == 1)
+  require(decodeWidth == 2)
 
   val n = fetchWidth - 1
   val nBufValid = if (n == 0) 0.U else RegInit(init=0.U(log2Ceil(fetchWidth).W))
