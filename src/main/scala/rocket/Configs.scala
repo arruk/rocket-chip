@@ -231,6 +231,7 @@ class WithL1ICacheTLBWays(ways: Int)                   extends RocketICacheConfi
 class WithL1ICacheTLBBasePageSectors(sectors: Int)     extends RocketICacheConfig(_.copy(nTLBBasePageSectors = sectors))
 class WithL1ICacheTLBSuperpages(superpages: Int)       extends RocketICacheConfig(_.copy(nTLBSuperpages = superpages))
 class WithL1ICacheBlockBytes(bytes: Int = 64)          extends RocketICacheConfig(_.copy(blockBytes = bytes))
+class WithL1ICacheFetchBytes(bytes: Int = 4)           extends RocketICacheConfig(_.copy(fetchBytes = bytes))
 
 class WithL1DCacheSets(sets: Int)                      extends RocketDCacheConfig(_.copy(nSets=sets))
 class WithL1DCacheWays(ways: Int)                      extends RocketDCacheConfig(_.copy(nWays=ways))
